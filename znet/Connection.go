@@ -37,6 +37,7 @@ func (c *Connection) Start() {
 	//  todo 启动 当前连接的写业务
 	data := make([]byte, 512)
 	for {
+		// todo read() 会阻塞程序
 		length, err := c.Conn.Read(data)
 		if err != nil {
 			fmt.Printf("read Conn[%d] eror : %v\n", c.ID, err)
