@@ -54,6 +54,7 @@ func (s *Server) Start() {
 		connID = 0
 		// 3. 阻塞的等待客户端连接，处理客户端业务
 		for true {
+			// todo accept() 会阻塞程序
 			conn, err := tcpListener.AcceptTCP()
 			if err != nil {
 				fmt.Println("Accept err", err)
