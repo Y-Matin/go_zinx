@@ -3,7 +3,8 @@ package znet
 import (
 	"fmt"
 	"net"
-	"zinx/ziface"
+	"zinx/src/utils"
+	"zinx/src/ziface"
 )
 
 type Connection struct {
@@ -18,16 +19,18 @@ type Connection struct {
 
 	// 连接关闭 的标志 channel
 	ExitChan chan bool
+	// 当前连接注册的router 方法
+	Router ziface.IRouter
 }
 
 // 初始化连接模块的方法
-func NewConnection(conn *net.TCPConn, id uint32, callbackApi ziface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, id uint32, router ziface.IRouter) *Connection {
 	return &Connection{
-		Conn:      conn,
-		ID:        id,
-		Closed:    false,
-		HandleAPI: callbackApi,
-		ExitChan:  make(chan bool, 1),
+		Conn:     conn,
+		ID:       id,
+		Closed:   false,
+		Router:   router,
+		ExitChan: make(chan bool, 1),
 	}
 }
 
@@ -35,7 +38,7 @@ func (c *Connection) Start() {
 	fmt.Printf("Conn[%d] Start().... \n", c.ID)
 	defer c.Stop()
 	//  todo 启动 当前连接的写业务
-	data := make([]byte, 512)
+	data := make([]byte, utils.Config.MaxPackageSize)
 	for {
 		// todo read() 会阻塞程序
 		length, err := c.Conn.Read(data)
@@ -43,12 +46,18 @@ func (c *Connection) Start() {
 			fmt.Printf("read Conn[%d] eror : %v\n", c.ID, err)
 			continue
 		}
-		//  调用绑定的业务处理方法
-		err = c.HandleAPI(c.Conn, data, length)
-		if err != nil {
-			fmt.Printf("Conn[%d] handlerAPI exec error:\n", c.ID, err)
-			break
+
+		// 使用该Conn绑定的路由方法
+		req := Request{
+			conn: c,
+			data: data[0:length],
 		}
+		// 执行路由中注册的处理方法
+		go func(req ziface.IRequest) {
+			c.Router.PreHandle(req)
+			c.Router.Handle(req)
+			c.Router.PostHandle(req)
+		}(&req)
 
 	}
 

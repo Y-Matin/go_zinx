@@ -1,40 +1,36 @@
 package znet
 
 import (
-	"errors"
 	"fmt"
 	"net"
+	"zinx/src/utils"
+	"zinx/src/ziface"
 )
 
 type Server struct {
-	Name      string
-	IP        string
-	Port      int
-	IPVersion string
+	Name      string         // 服务器名称
+	IP        string         // ip
+	Port      int            // port
+	IPVersion string         // 服务器绑定的ip版本
+	Router    ziface.IRouter // 给当前的server添加给一个router。 连接server的连接对应的处理方法
 }
 
-func NewServer(name string) *Server {
+func NewServer(name string) (server *Server) {
+	defer func() {
+		//补全 config对象
+		utils.Config.TcpServer = server
+	}()
 	return &Server{
-		Name:      name,
-		IP:        "0.0.0.0",
-		Port:      8999,
-		IPVersion: "tcp4",
+		Name:      utils.Config.ServerName,
+		IP:        utils.Config.Ip,
+		Port:      utils.Config.Port,
+		IPVersion: utils.Config.IPVersion,
+		Router:    nil,
 	}
-}
-
-// 业务处理方法
-func CallbackMsgToClient(conn *net.TCPConn, data []byte, length int) error {
-	fmt.Println("[Conn Handle] CallbackMsgToClient()... ")
-	_, err := conn.Write(data[0:length])
-	if err != nil {
-		fmt.Println("write back buf err", err)
-		return errors.New("CallbackMsgToClient() error")
-	}
-	return nil
-
 }
 
 func (s *Server) Start() {
+	fmt.Println(utils.Config)
 	fmt.Printf("[Start] Server Listenner at IP:%s, Port:%d\n", s.IP, s.Port)
 
 	// 异步创建tcp监听
@@ -62,9 +58,8 @@ func (s *Server) Start() {
 			} else {
 				fmt.Println("[server] accept conn")
 			}
-			fmt.Print("test")
 			//  得到 connection 包装体
-			connection := NewConnection(conn, connID, CallbackMsgToClient)
+			connection := NewConnection(conn, connID, s.Router)
 			connID++
 			// 启动连接
 			go connection.Start()
@@ -88,4 +83,8 @@ func (s *Server) Serve() {
 	// 阻塞状态
 	select {}
 
+}
+
+func (s *Server) AddRouter(router ziface.IRouter) {
+	s.Router = router
 }

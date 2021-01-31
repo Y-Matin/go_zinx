@@ -1,6 +1,6 @@
 package main
 
-import "zinx/znet"
+import "zinx/src/znet"
 
 func main() {
 	// 得到一个server,使用server的api
