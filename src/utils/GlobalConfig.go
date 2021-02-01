@@ -52,7 +52,7 @@ func init() {
 		MaxConn:        1000,
 		MaxPackageSize: 4096,
 	}
-	reloadConfig()
+	//reloadConfig()
 }
 
 /**
