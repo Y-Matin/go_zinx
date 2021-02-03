@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"zinx/src/utils"
@@ -14,8 +15,6 @@ type Connection struct {
 	ID uint32
 	// 连接的状态
 	Closed bool
-	// 当前连接的处理方法
-	HandleAPI ziface.HandleFunc
 
 	// 连接关闭 的标志 channel
 	ExitChan chan bool
@@ -35,36 +34,45 @@ func NewConnection(conn *net.TCPConn, id uint32, router ziface.IRouter) *Connect
 }
 
 func (c *Connection) Start() {
-	fmt.Printf("Conn[%d] Start().... \n", c.ID)
+	fmt.Printf("conn[%d] Start().... \n", c.ID)
 	defer c.Stop()
-	//  todo 启动 当前连接的写业务
+	// TLV： 读取head头部数据
 	data := make([]byte, utils.Config.MaxPackageSize)
 	for {
 		// todo read() 会阻塞程序
-		length, err := c.Conn.Read(data)
+		_, err := c.Conn.Read(data)
 		if err != nil {
-			fmt.Printf("read Conn[%d] eror : %v\n", c.ID, err)
+			fmt.Printf("read conn[%d] eror : %v\n", c.ID, err)
 			continue
 		}
-
-		// 使用该Conn绑定的路由方法
-		req := Request{
-			conn: c,
-			data: data[0:length],
+		// TLV：拆包
+		dataPackage := DataPackage{}
+		message, err := dataPackage.Unpack(data)
+		if err != nil {
+			fmt.Println("[TLV] read  head get  body length error:", err)
+			break
 		}
+		body := make([]byte, message.GetMsgLength())
+		_, err = c.Conn.Read(body)
+		if err != nil {
+			fmt.Println("[TLV] read body error ：", err)
+		}
+		message.SetMsgData(body)
+		req := NewRequest(c, message)
+
 		// 执行路由中注册的处理方法
 		go func(req ziface.IRequest) {
 			c.Router.PreHandle(req)
 			c.Router.Handle(req)
 			c.Router.PostHandle(req)
-		}(&req)
+		}(req)
 
 	}
 
 }
 
 func (c *Connection) Stop() {
-	fmt.Printf("Conn[%d] Stop().... \n", c.ID)
+	fmt.Printf("conn[%d] Stop().... \n", c.ID)
 	if c.Closed {
 		return
 	}
@@ -73,7 +81,7 @@ func (c *Connection) Stop() {
 	_ = c.Conn.Close()
 	// 回收资源 ，关闭管道
 	close(c.ExitChan)
-	fmt.Printf("Conn[%d] Stoped \n", c.ID)
+	fmt.Printf("conn[%d] Stoped \n", c.ID)
 }
 
 func (c *Connection) GetTCPConnection() *net.TCPConn {
@@ -92,8 +100,19 @@ func (c *Connection) GetRemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
 }
 
-func (c *Connection) Send(bytes []byte) error {
-	_, err := c.Conn.Write(bytes)
+// 将数据 封装为msg，在将msg 封包得到最终要发送的TLV格式的[]byte
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	if c.Closed {
+		return errors.New("conn is closed when send msg")
+	}
+	msg := NewMessage(msgId, data)
+	dp := DataPackage{}
+	bytes, err := dp.Pack(msg)
+	if err != nil {
+		fmt.Println("[Pack] err :", err)
+		return errors.New("Pack data error")
+	}
+	_, err = c.Conn.Write(bytes)
 	if err != nil {
 		fmt.Println("[connection]: send data error:", err)
 	}

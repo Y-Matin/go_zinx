@@ -24,6 +24,7 @@ func TestDataPackage_Pack(t *testing.T) {
 		if err1 != nil {
 			fmt.Println("accept error:", err1)
 		}
+		//  todo  此处 新建了goroutine去单独处理conn，是因为内部 有一个for循环，一直读取conn的数据，导致上面的Accept() 无法执行。造成该server只能处理一个client请求。所以，创建了goroutine去单独处理connection
 		go func() {
 			for true {
 				// readLength head

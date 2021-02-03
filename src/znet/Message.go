@@ -1,9 +1,19 @@
 package znet
 
+import "zinx/src/ziface"
+
 type Message struct {
 	Id     uint32 // id
 	Length uint32 // length
 	Data   []byte // data
+}
+
+func NewMessage(id uint32, data []byte) ziface.IMessage {
+	return &Message{
+		Id:     id,
+		Length: uint32(len(data)),
+		Data:   data,
+	}
 }
 
 func (m *Message) GetMsgId() uint32 {
