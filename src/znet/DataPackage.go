@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"strconv"
 	"zinx/src/utils"
 	"zinx/src/ziface"
 )
@@ -68,7 +69,7 @@ func (d *DataPackage) Unpack(datas []byte) (ziface.IMessage, error) {
 	// 判断 length 是否已经超过最大限制
 	if msg.Length >= utils.Config.MaxPackageSize {
 
-		return nil, errors.New("the msg is too large")
+		return nil, errors.New("the msg is too large :[" + strconv.Itoa(int(msg.Length)) + "]")
 	}
 	return &msg, nil
 }

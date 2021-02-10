@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"zinx/src/utils"
 	"zinx/src/ziface"
 )
 
@@ -37,7 +36,8 @@ func (c *Connection) Start() {
 	fmt.Printf("conn[%d] Start().... \n", c.ID)
 	defer c.Stop()
 	// TLV： 读取head头部数据
-	data := make([]byte, utils.Config.MaxPackageSize)
+	dp := NewDataPackage()
+	data := make([]byte, dp.GetHeadLen())
 	for {
 		// todo read() 会阻塞程序
 		_, err := c.Conn.Read(data)

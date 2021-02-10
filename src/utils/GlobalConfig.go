@@ -46,7 +46,7 @@ func init() {
 		TcpServer:      nil,
 		ServerName:     "ZinxServer",
 		Ip:             "0.0.0.0",
-		Port:           899,
+		Port:           8999,
 		IPVersion:      "tcp4",
 		Version:        "v0.4",
 		MaxConn:        1000,
