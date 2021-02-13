@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 	"sync"
@@ -30,8 +31,9 @@ func connectTCPServer(k int) {
 		for ; i < 100; i++ {
 			//	封包
 			dp := znet.NewDataPackage()
-			content := []byte("今天星期?" + strconv.Itoa(int(i)))
-			message := znet.NewMessage(uint32(i), content)
+			i2 := rand.Intn(3)
+			content := []byte("今天星期?" + strconv.Itoa(int(i2)))
+			message := znet.NewMessage(uint32(i2), content)
 			pack, err := dp.Pack(message)
 			if err != nil {
 				fmt.Println("pack error:", err)

@@ -8,11 +8,11 @@ import (
 )
 
 type Server struct {
-	Name      string         // 服务器名称
-	IP        string         // ip
-	Port      int            // port
-	IPVersion string         // 服务器绑定的ip版本
-	Router    ziface.IRouter // 给当前的server添加给一个router。 连接server的连接对应的处理方法
+	Name      string             // 服务器名称
+	IP        string             // ip
+	Port      int                // port
+	IPVersion string             // 服务器绑定的ip版本
+	Routers   ziface.IMsgHandler // 多路由
 }
 
 func NewServer(name string) (server *Server) {
@@ -21,11 +21,11 @@ func NewServer(name string) (server *Server) {
 		utils.Config.TcpServer = server
 	}()
 	return &Server{
-		Name:      utils.Config.ServerName,
+		Name:      name,
 		IP:        utils.Config.Ip,
 		Port:      utils.Config.Port,
 		IPVersion: utils.Config.IPVersion,
-		Router:    nil,
+		Routers:   NewMsgHandler(),
 	}
 }
 
@@ -59,7 +59,7 @@ func (s *Server) Start() {
 				fmt.Println("[server] accept conn")
 			}
 			//  得到 connection 包装体
-			connection := NewConnection(conn, connID, s.Router)
+			connection := NewConnection(conn, connID, s.Routers)
 			connID++
 			// 启动连接
 			go connection.Start()
@@ -85,6 +85,6 @@ func (s *Server) Serve() {
 
 }
 
-func (s *Server) AddRouter(router ziface.IRouter) {
-	s.Router = router
+func (s *Server) AddRouter(msgId uint32, router ziface.IRouter) {
+	s.Routers.Put(msgId, router)
 }

@@ -17,17 +17,17 @@ type Connection struct {
 
 	// 连接关闭 的标志 channel
 	ExitChan chan bool
-	// 当前连接注册的router 方法
-	Router ziface.IRouter
+	//多路由
+	Routers ziface.IMsgHandler
 }
 
 // 初始化连接模块的方法
-func NewConnection(conn *net.TCPConn, id uint32, router ziface.IRouter) *Connection {
+func NewConnection(conn *net.TCPConn, id uint32, routers ziface.IMsgHandler) *Connection {
 	return &Connection{
 		Conn:     conn,
 		ID:       id,
 		Closed:   false,
-		Router:   router,
+		Routers:  routers,
 		ExitChan: make(chan bool, 1),
 	}
 }
@@ -59,12 +59,9 @@ func (c *Connection) Start() {
 		}
 		message.SetMsgData(body)
 		req := NewRequest(c, message)
-
 		// 执行路由中注册的处理方法
 		go func(req ziface.IRequest) {
-			c.Router.PreHandle(req)
-			c.Router.Handle(req)
-			c.Router.PostHandle(req)
+			c.Routers.DoMsgHandler(req)
 		}(req)
 
 	}
