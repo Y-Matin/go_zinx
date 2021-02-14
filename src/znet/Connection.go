@@ -75,10 +75,8 @@ func (c *Connection) startReader() {
 		message.SetMsgData(body)
 		req := NewRequest(c, message)
 		// 执行路由中注册的处理方法
-		go func(req ziface.IRequest) {
-			c.Routers.DoMsgHandler(req)
-		}(req)
-
+		//将任务 放入到任务池中，等待被worker执行
+		c.Routers.AddTask(req)
 	}
 }
 

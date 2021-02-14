@@ -5,4 +5,6 @@ type IMsgHandler interface {
 	DoMsgHandler(request IRequest)
 	// 添加路由
 	Put(id uint32, router IRouter)
+	// 添加任务task
+	AddTask(req IRequest)
 }
