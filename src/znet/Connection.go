@@ -17,6 +17,10 @@ type Connection struct {
 
 	// 连接关闭 的标志 channel
 	ExitChan chan bool
+
+	// 写消息管道(无缓冲channel)
+	MsgChan chan []byte
+
 	//多路由
 	Routers ziface.IMsgHandler
 }
@@ -29,11 +33,21 @@ func NewConnection(conn *net.TCPConn, id uint32, routers ziface.IMsgHandler) *Co
 		Closed:   false,
 		Routers:  routers,
 		ExitChan: make(chan bool, 1),
+		MsgChan:  make(chan []byte),
 	}
 }
 
 func (c *Connection) Start() {
 	fmt.Printf("conn[%d] Start().... \n", c.ID)
+	defer fmt.Println("Start() down!!!!!")
+	go c.startReader()
+	go c.startWriter()
+
+}
+
+func (c *Connection) startReader() {
+	fmt.Printf("conn[%d] Reader Goroutine is running\n", c.ID)
+	defer fmt.Printf("conn[%d] Reader Goroutine is closed\n", c.ID)
 	defer c.Stop()
 	// TLV： 读取head头部数据
 	dp := NewDataPackage()
@@ -43,7 +57,7 @@ func (c *Connection) Start() {
 		_, err := c.Conn.Read(data)
 		if err != nil {
 			fmt.Printf("read conn[%d] eror : %v\n", c.ID, err)
-			continue
+			break
 		}
 		// TLV：拆包
 		dataPackage := DataPackage{}
@@ -56,6 +70,7 @@ func (c *Connection) Start() {
 		_, err = c.Conn.Read(body)
 		if err != nil {
 			fmt.Println("[TLV] read body error ：", err)
+			break
 		}
 		message.SetMsgData(body)
 		req := NewRequest(c, message)
@@ -63,6 +78,26 @@ func (c *Connection) Start() {
 		go func(req ziface.IRequest) {
 			c.Routers.DoMsgHandler(req)
 		}(req)
+
+	}
+}
+
+func (c *Connection) startWriter() {
+	fmt.Printf("conn[%d] Writer Goroutine is running\n", c.ID)
+	defer fmt.Printf("conn[%d] Write Goroutine is closed \n", c.ID)
+	for true {
+		select {
+		case bytes := <-c.MsgChan:
+			// 有数据要写回客户端
+			_, err := c.Conn.Write(bytes)
+			if err != nil {
+				fmt.Println("Write() error:", err)
+				return
+			}
+		case <-c.ExitChan:
+			//代表Reader已经退出，此时Writer也要退出
+			return
+		}
 
 	}
 
@@ -74,6 +109,7 @@ func (c *Connection) Stop() {
 		return
 	}
 	c.Closed = true
+	c.ExitChan <- true
 	// 关闭连接
 	_ = c.Conn.Close()
 	// 回收资源 ，关闭管道
@@ -109,9 +145,7 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 		fmt.Println("[Pack] err :", err)
 		return errors.New("Pack data error")
 	}
-	_, err = c.Conn.Write(bytes)
-	if err != nil {
-		fmt.Println("[connection]: send data error:", err)
-	}
-	return err
+	// 往写通道里面放入数据
+	c.MsgChan <- bytes
+	return nil
 }
