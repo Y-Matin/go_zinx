@@ -13,7 +13,10 @@ import (
 func main() {
 	group := sync.WaitGroup{}
 	group.Add(1)
-	go connectTCPServer(1)
+	// 测试 server的最大连接数限制是否有效（10）
+	for i := 0; i < 15; i++ {
+		go connectTCPServer(i)
+	}
 	group.Wait()
 }
 
@@ -25,10 +28,9 @@ func connectTCPServer(k int) {
 		fmt.Printf("[client:%d] connect server success\n", k)
 	}
 	//reader := bufio.NewReader(os.Stdin)
-	defer conn.Close()
 	var i uint32
 	go func() {
-		for ; i < 100; i++ {
+		for ; i < 1; i++ {
 			//	封包
 			dp := znet.NewDataPackage()
 			i2 := rand.Intn(3)
@@ -70,6 +72,6 @@ func connectTCPServer(k int) {
 		}
 	}()
 	// 防止当前goroutine 在创建两个goroutine后，运行结束，因此加上了select阻塞当前goroutine
-	select {}
+	//select {}
 
 }

@@ -12,7 +12,7 @@ import (
 //读写分离
 func main() {
 	// 得到一个server,使用server的api
-	server := znet.NewServer("zinxV0.7")
+	server := znet.NewServer("zinxV0.9")
 	server.AddRouter(0, &PingRouter{})
 	server.AddRouter(1, &RandomRouter{})
 	// 运行server
@@ -24,17 +24,14 @@ type PingRouter struct {
 }
 
 func (p *PingRouter) PreHandle(request ziface.IRequest) {
-	fmt.Println("before handle")
 }
 
 func (p *PingRouter) Handle(request ziface.IRequest) {
-	fmt.Println("do handle")
 	fmt.Printf("Data:[%s]\n", request.GetData())
 	request.GetConnection().SendMsg(1, []byte("ping... ping... ping..."))
 }
 
 func (p *PingRouter) PostHandle(request ziface.IRequest) {
-	fmt.Println("after handle ")
 }
 
 type RandomRouter struct {
@@ -42,7 +39,6 @@ type RandomRouter struct {
 }
 
 func (r *RandomRouter) Handle(request ziface.IRequest) {
-	fmt.Println("do handle")
 	fmt.Printf("Data:[%s]\n", request.GetData())
 	request.GetConnection().SendMsg(1, []byte("Roudom:["+strconv.Itoa(rand.Intn(100))+"]"))
 }

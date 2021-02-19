@@ -8,6 +8,8 @@ import (
 )
 
 type Connection struct {
+	// 当前连接所属的server
+	TcpServer ziface.Iserver
 	// 当前连接的套接字
 	Conn *net.TCPConn
 	// 连接的id
@@ -26,20 +28,20 @@ type Connection struct {
 }
 
 // 初始化连接模块的方法
-func NewConnection(conn *net.TCPConn, id uint32, routers ziface.IMsgHandler) *Connection {
+func NewConnection(server ziface.Iserver, conn *net.TCPConn, id uint32, routers ziface.IMsgHandler) *Connection {
 	return &Connection{
-		Conn:     conn,
-		ID:       id,
-		Closed:   false,
-		Routers:  routers,
-		ExitChan: make(chan bool, 1),
-		MsgChan:  make(chan []byte),
+		TcpServer: server,
+		Conn:      conn,
+		ID:        id,
+		Closed:    false,
+		Routers:   routers,
+		ExitChan:  make(chan bool, 1),
+		MsgChan:   make(chan []byte),
 	}
 }
 
 func (c *Connection) Start() {
 	fmt.Printf("conn[%d] Start().... \n", c.ID)
-	defer fmt.Println("Start() down!!!!!")
 	go c.startReader()
 	go c.startWriter()
 
@@ -110,6 +112,8 @@ func (c *Connection) Stop() {
 	c.ExitChan <- true
 	// 关闭连接
 	_ = c.Conn.Close()
+	// 同步移除连接管理器中的连接
+	c.TcpServer.GetConnManager().RemoveConn(c.ID)
 	// 回收资源 ，关闭管道
 	close(c.ExitChan)
 	fmt.Printf("conn[%d] Stoped \n", c.ID)

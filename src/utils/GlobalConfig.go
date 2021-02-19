@@ -31,7 +31,7 @@ type GlobalConfig struct {
 	MaxWorkerTaskLen uint32 // 最大允许的worker的数量限制
 	QueueLength      uint32 // 任务等待队列长度
 	MaxQueueLength   uint32 // 等待队列最大长度限制
-
+	MaxConnLimit     uint32 // 允许的最大客户端连接数
 }
 
 var Config *GlobalConfig
@@ -54,7 +54,7 @@ func init() {
 		Port:             8999,
 		IPVersion:        "tcp4",
 		Version:          "v0.4",
-		MaxConn:          1000,
+		MaxConn:          10,
 		MaxPackageSize:   4096,
 		WorkerPoolSize:   10,
 		MaxWorkerTaskLen: 100,

@@ -3,16 +3,18 @@ package znet
 import (
 	"fmt"
 	"net"
+	"time"
 	"zinx/src/utils"
 	"zinx/src/ziface"
 )
 
 type Server struct {
-	Name      string             // 服务器名称
-	IP        string             // ip
-	Port      int                // port
-	IPVersion string             // 服务器绑定的ip版本
-	Routers   ziface.IMsgHandler // 多路由
+	Name        string              // 服务器名称
+	IP          string              // ip
+	Port        int                 // port
+	IPVersion   string              // 服务器绑定的ip版本
+	Routers     ziface.IMsgHandler  // 多路由
+	ConnManager ziface.IConnManager // 该server的连接管理器
 }
 
 func NewServer(name string) (server *Server) {
@@ -21,18 +23,18 @@ func NewServer(name string) (server *Server) {
 		utils.Config.TcpServer = server
 	}()
 	return &Server{
-		Name:      name,
-		IP:        utils.Config.Ip,
-		Port:      utils.Config.Port,
-		IPVersion: utils.Config.IPVersion,
-		Routers:   NewMsgHandler(),
+		Name:        name,
+		IP:          utils.Config.Ip,
+		Port:        utils.Config.Port,
+		IPVersion:   utils.Config.IPVersion,
+		Routers:     NewMsgHandler(),
+		ConnManager: NewConnManager(),
 	}
 }
 
 func (s *Server) Start() {
 	fmt.Println(utils.Config)
 	fmt.Printf("[Start] Server Listenner at IP:%s, Port:%d\n", s.IP, s.Port)
-
 	// 异步创建tcp监听
 	go func() {
 		// 1. 获取一个TCP的Addr
@@ -58,9 +60,21 @@ func (s *Server) Start() {
 			} else {
 				fmt.Println("[server] accept conn")
 			}
+			//判断当前server的连接数是否大于最大连接限制
+			fmt.Println("count:", s.ConnManager.GetConnCount())
+			fmt.Println("limit:", utils.Config.MaxConn)
+			if s.ConnManager.GetConnCount() > utils.Config.MaxConn {
+				// todo 给客户端一个超过最大连接的错误提示
+				conn.Close()
+				time.Sleep(time.Millisecond)
+				continue
+			}
+
 			//  得到 connection 包装体
-			connection := NewConnection(conn, connID, s.Routers)
+			connection := NewConnection(s, conn, connID, s.Routers)
 			connID++
+			// 同步到连接管理模块中
+			s.ConnManager.AddConn(connection)
 			// 启动连接
 			go connection.Start()
 		}
@@ -70,7 +84,8 @@ func (s *Server) Start() {
 
 func (s *Server) Stop() {
 	// todo  将一些服务器的资源、状态或者一些已经开辟的连接信息， 进行停止或回收
-
+	s.ConnManager.Clear()
+	fmt.Printf("[Stop] server:[%s]\n", s.Name)
 }
 
 func (s *Server) Serve() {
@@ -87,4 +102,8 @@ func (s *Server) Serve() {
 
 func (s *Server) AddRouter(msgId uint32, router ziface.IRouter) {
 	s.Routers.Put(msgId, router)
+}
+
+func (s *Server) GetConnManager() ziface.IConnManager {
+	return s.ConnManager
 }

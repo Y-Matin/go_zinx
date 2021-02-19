@@ -9,4 +9,6 @@ type Iserver interface {
 	Serve()
 	//路由功能：给当前的服务注册一个路有方法，功能客户端的连接处理使用
 	AddRouter(msgId uint32, router IRouter)
+	//返回当前server的连接管理器
+	GetConnManager() IConnManager
 }
