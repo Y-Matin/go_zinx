@@ -17,6 +17,7 @@ func main() {
 	for i := 0; i < 15; i++ {
 		go connectTCPServer(i)
 	}
+	// main Goroutine一致阻塞
 	group.Wait()
 }
 
@@ -30,7 +31,8 @@ func connectTCPServer(k int) {
 	//reader := bufio.NewReader(os.Stdin)
 	var i uint32
 	go func() {
-		for ; i < 1; i++ {
+		defer fmt.Printf("conn:[%d] closed\n", k)
+		for ; i < 100; i++ {
 			//	封包
 			dp := znet.NewDataPackage()
 			i2 := rand.Intn(3)
@@ -39,22 +41,25 @@ func connectTCPServer(k int) {
 			pack, err := dp.Pack(message)
 			if err != nil {
 				fmt.Println("pack error:", err)
+				return
 			}
 			_, err = conn.Write(pack)
 			if err != nil {
 				fmt.Println("write error:", err)
+				return
 			}
 			time.Sleep(time.Millisecond * 500)
-
 		}
 	}()
 	go func() {
+		defer fmt.Printf("conn:[%d] closed\n", k)
 		for true {
 			dataPackage := znet.NewDataPackage()
 			headBytes := make([]byte, dataPackage.GetHeadLen())
 			_, err := conn.Read(headBytes)
 			if err != nil {
 				fmt.Println("read error:", err)
+				return
 			}
 
 			msg, err := dataPackage.Unpack(headBytes)
@@ -65,13 +70,11 @@ func connectTCPServer(k int) {
 			_, err = conn.Read(bodyBytes)
 			if err != nil {
 				fmt.Println("Resd Body error:", err)
+				return
 			} else {
 				fmt.Printf("[Receive]:[%s]\n", string(bodyBytes))
 			}
 			time.Sleep(time.Millisecond * 500)
 		}
 	}()
-	// 防止当前goroutine 在创建两个goroutine后，运行结束，因此加上了select阻塞当前goroutine
-	//select {}
-
 }

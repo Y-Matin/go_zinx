@@ -13,8 +13,12 @@ import (
 func main() {
 	// 得到一个server,使用server的api
 	server := znet.NewServer("zinxV0.9")
+	// 为message设置对应的路由器，处理逻辑
 	server.AddRouter(0, &PingRouter{})
 	server.AddRouter(1, &RandomRouter{})
+	//为 conn 创建后，销毁前的额外处理逻辑
+	server.SetOnConnStart(createConn)
+	server.SetOnConnStop(closeConn)
 	// 运行server
 	server.Serve()
 }
@@ -41,4 +45,11 @@ type RandomRouter struct {
 func (r *RandomRouter) Handle(request ziface.IRequest) {
 	fmt.Printf("Data:[%s]\n", request.GetData())
 	request.GetConnection().SendMsg(1, []byte("Roudom:["+strconv.Itoa(rand.Intn(100))+"]"))
+}
+
+func createConn(connection ziface.IConnection) {
+	fmt.Printf("HOOK函数==>>创建Conn：[%d]\n", connection.GetConnID())
+}
+func closeConn(connection ziface.IConnection) {
+	fmt.Printf("HOOK函数==>>销毁Conn：[%d]\n", connection.GetConnID())
 }

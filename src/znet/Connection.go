@@ -42,15 +42,16 @@ func NewConnection(server ziface.Iserver, conn *net.TCPConn, id uint32, routers 
 
 func (c *Connection) Start() {
 	fmt.Printf("conn[%d] Start().... \n", c.ID)
+	//调用onConnStart对应的方法
+	c.TcpServer.CallOnConnStart(c)
 	go c.startReader()
 	go c.startWriter()
-
 }
 
 func (c *Connection) startReader() {
 	fmt.Printf("conn[%d] Reader Goroutine is running\n", c.ID)
-	defer fmt.Printf("conn[%d] Reader Goroutine is closed\n", c.ID)
 	defer c.Stop()
+	defer fmt.Printf("conn[%d] Reader Goroutine is closed\n", c.ID)
 	// TLV： 读取head头部数据
 	dp := NewDataPackage()
 	data := make([]byte, dp.GetHeadLen())
@@ -110,6 +111,8 @@ func (c *Connection) Stop() {
 	}
 	c.Closed = true
 	c.ExitChan <- true
+	//调用onConnStart对应的方法
+	c.TcpServer.CallOnConnStop(c)
 	// 关闭连接
 	_ = c.Conn.Close()
 	// 同步移除连接管理器中的连接
