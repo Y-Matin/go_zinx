@@ -24,9 +24,14 @@ type GlobalConfig struct {
 	/**
 	zinx
 	*/
-	Version        string // 当前zinx的版本号
-	MaxConn        int    // 当前服务器主机的最大连接数
-	MaxPackageSize uint32 // 当前zinx框架数据包的最大值
+	Version          string // 当前zinx的版本号
+	MaxConn          int    // 当前服务器主机的最大连接数
+	MaxPackageSize   uint32 // 当前zinx框架数据包的最大值
+	WorkerPoolSize   uint32 // 当前业务工作Worker池中Goroutine的数量
+	MaxWorkerTaskLen uint32 // 最大允许的worker的数量限制
+	QueueLength      uint32 // 任务等待队列长度
+	MaxQueueLength   uint32 // 等待队列最大长度限制
+
 }
 
 var Config *GlobalConfig
@@ -43,16 +48,20 @@ func GetGlobalConfig() (config *GlobalConfig) {
 */
 func init() {
 	Config = &GlobalConfig{
-		TcpServer:      nil,
-		ServerName:     "ZinxServer",
-		Ip:             "0.0.0.0",
-		Port:           8999,
-		IPVersion:      "tcp4",
-		Version:        "v0.4",
-		MaxConn:        1000,
-		MaxPackageSize: 4096,
+		TcpServer:        nil,
+		ServerName:       "ZinxServer",
+		Ip:               "0.0.0.0",
+		Port:             8999,
+		IPVersion:        "tcp4",
+		Version:          "v0.4",
+		MaxConn:          1000,
+		MaxPackageSize:   4096,
+		WorkerPoolSize:   10,
+		MaxWorkerTaskLen: 100,
+		QueueLength:      50,
+		MaxQueueLength:   200,
 	}
-	//reloadConfig()
+	reloadConfig()
 }
 
 /**

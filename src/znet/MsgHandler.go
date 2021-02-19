@@ -3,6 +3,7 @@ package znet
 import (
 	"fmt"
 	"sync"
+	"zinx/src/utils"
 	"zinx/src/ziface"
 )
 
@@ -24,20 +25,20 @@ var mutex sync.Mutex
 var wg = &sync.WaitGroup{}
 
 func init() {
-	workSize := 10
 	msgHandler = &MsgHandler{
 		Api:            make(map[uint32]ziface.IRouter),
-		WorkerPoolSize: 10,
+		WorkerPoolSize: utils.Config.WorkerPoolSize,
 		TaskQueues:     make(map[uint32]chan ziface.IRequest),
-		QueueLength:    100,
+		QueueLength:    utils.Config.QueueLength,
 		nextNumber:     0,
 	}
 	// 创建 固定数量的worker-goroutine
-	wg.Add(workSize)
-	for i := 0; i < workSize; i++ {
+	wg.Add(int(msgHandler.WorkerPoolSize))
+	for i := 0; i < int(msgHandler.WorkerPoolSize); i++ {
 		// 此处一定要传参进去，否则 i 的值始终是一个。 不是原子性，添加入参，使用i的副本，保证原子性
 		go func(i uint32) {
-			channel := make(chan ziface.IRequest, msgHandler.QueueLength)
+			// 全局配置中的最大队列长度
+			channel := make(chan ziface.IRequest, utils.Config.MaxQueueLength)
 			// 将channel放入等待队列集合中
 			mutex.Lock()
 			msgHandler.TaskQueues[i] = channel

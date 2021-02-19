@@ -12,7 +12,7 @@ import (
 //读写分离
 func main() {
 	// 得到一个server,使用server的api
-	server := znet.NewServer("zinxV0.7")
+	server := znet.NewServer("zinxV0.8")
 	server.AddRouter(0, &PingRouter{})
 	server.AddRouter(1, &RandomRouter{})
 	// 运行server

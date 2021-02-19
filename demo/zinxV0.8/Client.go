@@ -25,7 +25,6 @@ func connectTCPServer(k int) {
 		fmt.Printf("[client:%d] connect server success\n", k)
 	}
 	//reader := bufio.NewReader(os.Stdin)
-	defer conn.Close()
 	var i uint32
 	go func() {
 		for ; i < 100; i++ {
