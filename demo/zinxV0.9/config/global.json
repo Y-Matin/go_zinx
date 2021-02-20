@@ -1,0 +1,10 @@
+{
+  "serverName": "Zinx",
+  "ip": "0.0.0.0",
+  "port":8999,
+  "IPVersion": "tcp4",
+  "Version ": "V0.4",
+  "MaxConn": 10,
+  "MaxPackageSize": 4069,
+  "WorkerPoolSize": 5
+}
